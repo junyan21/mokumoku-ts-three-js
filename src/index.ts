@@ -42,12 +42,30 @@ scene.add(camera)
 /******************************************************************
 空間に3Dオブジェクトを配置します
 ******************************************************************/
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshBasicMaterial({ color: 'green' })
-)
-scene.add(cube)
 
+const particleGeometry = new THREE.BufferGeometry()
+const particleCount = 1000
+const positions = new Float32Array(particleCount * 3) // x,y,z
+
+for (let i = 0; i < particleCount * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 10 // -0.5すると中央寄せ それを*10すると大空間へ
+}
+
+particleGeometry.setAttribute(
+  'position',
+  new THREE.BufferAttribute(
+    positions,  // 頂点情報配列をセット
+    3           // x,y,zの3つで"1セット"
+  )
+)
+
+const particleMaterial = new THREE.PointsMaterial({
+  size: 0.1,
+  sizeAttenuation: true // カメラからの距離に応じてパーティクルサイズの見え方を変える
+})
+
+const particles = new THREE.Points(particleGeometry, particleMaterial)
+scene.add(particles)
 
 
 /******************************************************************
@@ -97,7 +115,20 @@ const clock = new THREE.Clock()
 
 // フレーム毎にやりたい処理を定義します
 const tick = () => {
+  // 経過時間はSin, Cosなどの関数や、3Dモデルのアニメーションで使うことができます(Unity VFX GraphでもTimeコンポーネントを使いました)
   const elapsedTime = clock.getElapsedTime()
+
+  /**
+   * パーティクルのアニメーション処理
+   */
+  for (let i = 0; i < particleCount; i++) {
+    // ジオメトリに設定した頂点配列の要素を取得して、位置を変更します
+    const x = particleGeometry.attributes.position.getX(i)
+    // 経過時間とx座標を引数にSin関数でyの位置を求めます
+    particleGeometry.attributes.position.setY(i, Math.sin(elapsedTime * x))
+  }
+  // パーティクルの変更を反映するには'needsUpdate'が必要
+  particleGeometry.attributes.position.needsUpdate = true
 
   // Update Controls
   controls.update()
